@@ -1,4 +1,5 @@
-# Simple network "Ping-Pong" for stupid student ;)
+# Simple network "Ping-Pong" for lazy student ;)
+IO is async, used [libuv](https://github.com/libuv/) and [uvw](https://github.com/skypjack/uvw)
 # Build
 Is required compiler C++14 
 
