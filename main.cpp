@@ -5,7 +5,9 @@
 #include <algorithm>
 
 #include <docopt.h>
-#include <uvw.hpp>
+#include <uvw/loop.hpp>
+#include <uvw/udp.hpp>
+#include <uvw/timer.hpp>
 
 enum class Mode { Responder, Requester };
 std::ostream& operator<< (std::ostream&, Mode);
@@ -30,41 +32,62 @@ int main(int argc, char* argv[])
     std::cout << std::endl << options << std::endl;
 
     auto loop = uvw::Loop::getDefault();
-    auto timer = loop->resource<uvw::TimerHandle>();
     auto socket = loop->resource<uvw::UDPHandle>();
+    auto timer = loop->resource<uvw::TimerHandle>();
 
-    auto error_handler = [](auto& err, auto&)
+    auto on_error = [](const auto& err, const auto&)
     {
         std::cout << "libuv error! name: " << err.name() << " what: " << err.what() << std::endl;
         std::abort();
     };
-    timer->on<uvw::ErrorEvent>(error_handler);
-    socket->on<uvw::ErrorEvent>(error_handler);
+    socket->on<uvw::ErrorEvent>(on_error);
+    timer->on<uvw::ErrorEvent>(on_error);
 
-    if (options.mode == Mode::Requester)
+    auto on_timer_requester = [socket, &options](const auto&, const auto&)
     {
-        socket->bind(options.bind_ip, options.bind_port);
+        const char message[] = "ping";
+        std::cout << get_time_pretty() << " Send request <" << message << ">" << std::endl;
 
-        auto timer_handler = [socket, &options](auto&, auto&)
-        {
-            std::cout << get_time_pretty() << " Send ping" << std::endl;
+        auto data = std::make_unique<char[]>( sizeof(message) );
+        std::copy_n( message, sizeof(message), data.get() );
+        socket->send( options.remote_ip, options.remote_port, std::move(data), sizeof(message) );
+    };
 
-            const char message[] = "ping";
-            auto data = std::make_unique<char[]>( sizeof(message) );
-            std::copy_n( message, sizeof(message), data.get() );
+    auto on_data_responder = [](const auto& event, auto& soc)
+    {
+        std::cout << get_time_pretty() << " Received from " << event.sender.ip << ":" << event.sender.port << ", data: " << std::string{event.data.get(), event.length} << std::endl;
 
-            socket->send( options.remote_ip, options.remote_port, std::move(data), sizeof(message) );
-        };
-        timer->on<uvw::TimerEvent>(timer_handler);
-        timer->start(std::chrono::seconds{options.repeat}, std::chrono::seconds{options.repeat});
+        const char message[] = "pong";
+        std::cout << get_time_pretty() << " Send respond <" << message << ">" << std::endl;
+
+        auto data = std::make_unique<char[]>( sizeof(message) );
+        std::copy_n( message, sizeof(message), data.get() );
+        soc.send( event.sender.ip, event.sender.port, std::move(data), sizeof(message) );
+    };
+
+
+
+    socket->bind(options.bind_ip, options.bind_port);
+
+    switch (options.mode)
+    {
+    case Mode::Requester:
+        timer->on<uvw::TimerEvent>(on_timer_requester);
+        timer->start(std::chrono::milliseconds{42}, std::chrono::seconds{options.repeat});
+        break;
+
+    case Mode::Responder:
+        socket->on<uvw::UDPDataEvent>(on_data_responder);
+        socket->recv();
+        break;
     }
 
     loop->run();
 
-    timer->clear();
-    timer->close();
     socket->clear();
     socket->close();
+    timer->clear();
+    timer->close();
 
     return 0;
 }
