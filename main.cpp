@@ -53,6 +53,11 @@ int main(int argc, char* argv[])
         socket->send( options.remote_ip, options.remote_port, std::move(data), sizeof(message) );
     };
 
+    auto on_data_requester = [](const auto& event, const auto&)
+    {
+        std::cout << get_time_pretty() << " Received from " << event.sender.ip << ":" << event.sender.port << ", data: " << std::string{event.data.get(), event.length} << std::endl;
+    };
+
     auto on_data_responder = [](const auto& event, auto& soc)
     {
         std::cout << get_time_pretty() << " Received from " << event.sender.ip << ":" << event.sender.port << ", data: " << std::string{event.data.get(), event.length} << std::endl;
@@ -72,6 +77,8 @@ int main(int argc, char* argv[])
     switch (options.mode)
     {
     case Mode::Requester:
+        socket->on<uvw::UDPDataEvent>(on_data_requester);
+        socket->recv();
         timer->on<uvw::TimerEvent>(on_timer_requester);
         timer->start(std::chrono::milliseconds{42}, std::chrono::seconds{options.repeat});
         break;
