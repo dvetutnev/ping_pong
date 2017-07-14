@@ -1,6 +1,7 @@
 #include <iostream>
 #include <iomanip>
 #include <ctime>
+#include <sstream>
 #include <algorithm>
 
 #include <docopt.h>
@@ -20,6 +21,8 @@ struct ProgramOptions
 };
 std::ostream& operator<< (std::ostream&, const ProgramOptions&);
 const ProgramOptions parse_program_options(int, char* []);
+
+std::string get_time_pretty();
 
 int main(int argc, char* argv[])
 {
@@ -44,9 +47,7 @@ int main(int argc, char* argv[])
 
         auto timer_handler = [socket, &options](auto&, auto&)
         {
-            std::time_t t =  std::time(NULL);
-            std::tm tm    = *std::localtime(&t);
-            std::cout << std::put_time(&tm, "[ %H:%M:%S ] Send ping") << std::endl;
+            std::cout << get_time_pretty() << " Send ping" << std::endl;
 
             const char message[] = "ping";
             auto data = std::make_unique<char[]>( sizeof(message) );
@@ -120,4 +121,13 @@ std::ostream& operator<< (std::ostream& os, const ProgramOptions& po)
     os << "Remote port: " << po.remote_port << std::endl;
     os << "Repeat time: " << po.repeat << std::endl;
     return os;
+}
+
+std::string get_time_pretty()
+{
+    std::time_t t = std::time(NULL);
+    std::tm tm = *( std::localtime(&t) );
+    std::ostringstream ss;
+    ss << std::put_time(&tm, "[ %H:%M:%S ]");
+    return ss.str();
 }
