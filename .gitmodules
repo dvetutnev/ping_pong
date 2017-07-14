@@ -7,3 +7,6 @@
 [submodule "vendor/docopt"]
 	path = vendor/docopt
 	url = https://github.com/docopt/docopt.cpp.git
+[submodule "vendor/date"]
+	path = vendor/date
+	url = https://github.com/HowardHinnant/date

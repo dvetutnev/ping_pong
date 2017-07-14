@@ -26,19 +26,21 @@ set(
 find_package(UV REQUIRED)
 find_package(UVW REQUIRED)
 find_package(Docopt REQUIRED)
+find_package(Date REQUIRED)
 find_package(Threads)
 
 include_directories(
     ${UV_INCLUDE_DIR}
     ${UVW_INCLUDE_DIR}
     ${docopt_DIR}
+    ${Date_INCLUDE_DIR}
     )
 
 set(SRC_LIST
     main.cpp
 )
 add_executable(${PROJECT_NAME} ${SRC_LIST})
-target_link_libraries(${PROJECT_NAME} uv docopt_s ${CMAKE_THREAD_LIBS_INIT})
+target_link_libraries(${PROJECT_NAME} uv docopt_s tz ${CMAKE_THREAD_LIBS_INIT})
 
 message(STATUS "CMAKE_CURRENT_BINARY_DIR => ${CMAKE_CURRENT_BINARY_DIR}")
 message(STATUS "CMAKE_C_COMPILER => ${CMAKE_C_COMPILER}")

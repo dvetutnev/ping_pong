@@ -1,6 +1,4 @@
 #include <iostream>
-#include <iomanip>
-#include <ctime>
 #include <sstream>
 #include <algorithm>
 
@@ -8,6 +6,8 @@
 #include <uvw/loop.hpp>
 #include <uvw/udp.hpp>
 #include <uvw/timer.hpp>
+#include <date.h>
+#include <tz.h>
 
 enum class Mode { Responder, Requester };
 std::ostream& operator<< (std::ostream&, Mode);
@@ -155,9 +155,10 @@ std::ostream& operator<< (std::ostream& os, const ProgramOptions& po)
 
 std::string get_time_pretty()
 {
-    std::time_t t = std::time(NULL);
-    std::tm tm = *( std::localtime(&t) );
+    using namespace date;
+    using namespace std::chrono;
+    auto now = make_zoned( current_zone(), system_clock::now() );
     std::ostringstream ss;
-    ss << std::put_time(&tm, "[ %H:%M:%S ]");
+    ss << "[ " << now << " ]";
     return ss.str();
 }
